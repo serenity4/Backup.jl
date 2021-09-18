@@ -20,8 +20,9 @@ function make_backup(config::BackupConfig; confirm::Bool = true)
     dst = backup_path(config.dst, string(config.id))
     src = config.target
 
-    includes = joinpath.(src, ["home", "etc", "snap", "var"])
-    excludes = joinpath.(src, ["var/log"])
+    includes = joinpath.(src, ["home", "etc"])
+    excludes = joinpath.(src, ["home/Games"])
+    # will still include steam games at /home/belmant/.local/share/Steam
 
     cmd = `sudo rsync $(flags(config)) --exclude=$excludes $includes $dst/`
     println("The following command will be run: ", crayon"#aacc22", string(cmd), RESET)
@@ -32,11 +33,16 @@ function make_backup(config::BackupConfig; confirm::Bool = true)
 
     @info "Creating backup of $src at $dst"
     mkpath(dst)
+    origin_saves = joinpath(src, "home/belmant/Games/origin/drive_c/users/belmant/My Documents/Bioware")
+    if isdir(origin_saves)
+        # copy save files from the games
+        cp(origin_saves, joinpath(src, "home/belmant/.origin_saves"), force=true)
+    end
     try
         run(cmd)
     catch e
         # exit code 24 indicates that some files vanished before transfer; it is likely to happen if there is user activity during transfer and is considered fine
-        !(e isa ProcessFailedException && first(e.procs).exitcode ≠ 24) && rethrow(e)
+        (e isa ProcessFailedException && first(e.procs).exitcode == 24) || rethrow(e)
     end
 end
 
