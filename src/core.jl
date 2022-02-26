@@ -21,8 +21,7 @@ function make_backup(config::BackupConfig; confirm::Bool = true)
     src = config.target
 
     includes = joinpath.(src, ["home", "etc"])
-    excludes = joinpath.(src, ["home/Games"])
-    # will still include steam games at /home/belmant/.local/share/Steam
+    excludes = joinpath.(src, ["home/Games", "home/.local/share/Steam"])
 
     cmd = `sudo rsync $(flags(config)) --exclude=$excludes $includes $dst/`
     println("The following command will be run: ", crayon"#aacc22", string(cmd), RESET)
